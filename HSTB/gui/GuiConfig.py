@@ -470,18 +470,18 @@ class GuiConfig:
                 #                             int(match['hour']), int(match['minute']), int(match['second']),
                 #                             decimal_sec, tzinfo=zone)
 
-                if isinstance(w, wx.calendar.CalendarCtrl):
+                if isinstance(w, CalendarCtrl):
                     try:  # bug in Calendar control is not refreshing the month dropdown box (when year is different but month was same) jitter the month to make th display refresh
-                        w.SetDate(wx.DateTimeFromDMY(int(match['day']), int(match['month']) - 2, int(match['year'])))
+                        w.SetDate(wx.DateTime.FromDMY(int(match['day']), int(match['month']) - 2, int(match['year'])))
                     except:
                         pass
                     try:
-                        w.SetDate(wx.DateTimeFromDMY(int(match['day']), int(match['month']), int(match['year'])))
+                        w.SetDate(wx.DateTime.FromDMY(int(match['day']), int(match['month']), int(match['year'])))
                     except:
                         pass
-                    w.SetDate(wx.DateTimeFromDMY(int(match['day']), int(match['month']) - 1, int(match['year'])))
+                    w.SetDate(wx.DateTime.FromDMY(int(match['day']), int(match['month']) - 1, int(match['year'])))
                 else:
-                    w.SetValue(wx.DateTimeFromDMY(int(match['day']), int(match['month']) - 1, int(match['year'])))
+                    w.SetValue(wx.DateTime.FromDMY(int(match['day']), int(match['month']) - 1, int(match['year'])))
             else:  # Trying to re-initialize the control
                 if isinstance(w, GenericDatePickerCtrl):
                     w.SetValue(wx.DateTime())  # send an invalid time object which clears the control
