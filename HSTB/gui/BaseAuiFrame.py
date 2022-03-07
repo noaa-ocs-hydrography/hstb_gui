@@ -1019,8 +1019,9 @@ class SplashScreenApp(wx.App):
             pass
         f.save(PathToResource('PydroSplash.jpg'))
         bmp = wx.Image(PathToResource("PydroSplash.jpg")).ConvertToBitmap()
-        SplashScreen(bmp, SPLASH_CENTRE_ON_SCREEN | SPLASH_TIMEOUT,
-                     1500, None, -1)
+        if not _dHSTP:
+            SplashScreen(bmp, SPLASH_CENTRE_ON_SCREEN | SPLASH_TIMEOUT,
+                         1500, None, -1)
         return self.ShowMain()
 
 # Must Override the ShowMain with the window/frame to create
