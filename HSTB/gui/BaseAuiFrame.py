@@ -235,11 +235,11 @@ class HSTPMenuItem(list):
         Functions are called using obj.__getattribute__(method_str) and
           bound to the MENU_EVT with ID = id (which is created if -1 is specified)
         '''
+        s = str(menutxt)
         if not method_str:
-            s = menutxt
             v = re.search('\&?[\w  /]*', s).group()
             method_str = 'On' + v.replace('&', '').replace(' ', '').replace('/', '')
-        list.__init__(self, [menutxt, obj, method_str, id, exists])
+        list.__init__(self, [s, obj, method_str, id, exists])
 
     def GetID(self):
         return self[3]
