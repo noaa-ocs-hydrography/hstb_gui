@@ -237,9 +237,16 @@ class HSTPMenuItem(list):
         '''
         s = str(menutxt)
         if not method_str:
-            v = re.search('\&?[\w  /]*', s).group()
-            method_str = 'On' + v.replace('&', '').replace(' ', '').replace('/', '')
+            # v = re.search('\&?[\w  /]*', s).group()
+            # method_str = 'On' + v.replace('&', '').replace(' ', '').replace('/', '')
+            method_str = self.make_method_name(s)
         list.__init__(self, [s, obj, method_str, id, exists])
+
+    @staticmethod
+    def make_method_name(s):
+        v = re.search('\&?[\w  /]*', s).group()
+        method_str = 'On' + v.replace('&', '').replace(' ', '').replace('/', '')
+        return method_str
 
     def GetID(self):
         return self[3]
