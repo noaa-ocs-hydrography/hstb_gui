@@ -434,6 +434,11 @@ class GuiConfig:
                 value = ""
             w.SetCheckedStrings(value)
         elif isinstance(w, (wx.RadioBox, wx.Choice)):
+            if value is None:
+                try:
+                    w.SetStringSelection("")
+                except:
+                    pass
             if value is not None:
                 w.SetStringSelection(value)
         elif isinstance(w, wx.StaticText):
