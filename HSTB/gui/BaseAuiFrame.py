@@ -377,7 +377,7 @@ class HSTP_AUI_Frame(wx.Frame):
     def SavePos(self):
         '''Old frame size/position save to registry, only used if the perspective save fails
         '''
-        pos = self.GetPositionTuple()
+        pos = self.GetPosition()
         name = self.appname + "\\MainFrame"
         if self.IsMaximized():  # save that Pydro is maximized
             SaveDWORDToRegistry(name, "Max", 1)
@@ -394,7 +394,7 @@ class HSTP_AUI_Frame(wx.Frame):
             maxx = win32api.GetSystemMetrics(win32con.SM_CXSCREEN) + minx
             maxy = win32api.GetSystemMetrics(win32con.SM_CYSCREEN) + miny
         if (pos[0] >= minx and pos[0] <= maxx) and (pos[1] >= miny and pos[1] <= maxy):   # Don't save if Pydro is minimized to Task Bar, or window is off screen
-            size = self.GetSizeTuple()
+            size = self.GetSize()
             SaveDWORDToRegistry(name, "SizeX", size[0])
             SaveDWORDToRegistry(name, "SizeY", size[1])
             SaveDWORDToRegistry(name, "PosX", pos[0])
@@ -411,7 +411,7 @@ class HSTP_AUI_Frame(wx.Frame):
         max = GetDWORDFromRegistry(name, "Max", 0)
         if wx.NOT_FOUND == wx.Display(0).GetFromPoint((x, y)):  # check that the upper left is on screen, otherwise move the window
             x, y = wx.Display(0).Geometry.GetTopLeft()
-        self.SetDimensions(x, y, wide, hi)
+        self.SetSize(x, y, wide, hi)  #use setsize
         if max:
             self.Maximize(True)  # calling self.Maximize(max) causes weird screen flicker if max=false
 
