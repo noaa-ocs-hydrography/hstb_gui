@@ -33,12 +33,24 @@ g.windows['text_control'] or g.windows.text_control
 '''
 
 import os
+import sys
 import traceback
 import re
 from collections import MutableMapping
 
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtUiTools import QUiLoader
+# check which qt bindings are already loaded and use those since we can't have two different versions loaded
+if "PySide6" in sys.modules.keys():
+    from PySide6 import QtCore, QtGui, QtWidgets
+    from PySide6.QtUiTools import QUiLoader
+elif "PySide2" in sys.modules.keys():
+    from PySide2 import QtCore, QtGui, QtWidgets
+    from PySide2.QtUiTools import QUiLoader
+elif "PyQt5" in sys.modules.keys():
+    from PyQt5 import QtCore, QtGui, QtWidgets
+    # FIXME - this is not working, need to figure out how to load the ui file
+    from PyQt5.QtUiTools import QUiLoader
+else:
+    raise ImportError("No Qt bindings found, please load PySide2 or PySide6 before importing GuiConfig")
 
 try:
     import win32api
@@ -76,7 +88,7 @@ def getAllChildren(w, recurse):
     For recurse=False returns window.GetChildren() which won't include the window itself
     """
     if recurse:
-        L = w.findChildren(QtWidgets.QWidget, QtCore.QRegExp(".*"))
+        L = w.findChildren(QtWidgets.QWidget) # this will return the window itself as well as all children
 
         # L = [w]
         # try:
@@ -179,7 +191,8 @@ class Manager(QtCore.QObject):
         self.cb()
         self.w.removeEventFilter(self)
 
-
+# FIXME when using a pyside6-uic generated ui file, the instance names are the same as the window names which makes __getattr__ fail.
+#       Either need to change the ui file variable names or revise the naming scheme here.
 class GuiConfig:
     ''' If using the registry to save/load, it will autoload if the use_registry is supplied on __init__.
     Otherwise call UseRegistry and LoadFromRegistry.
@@ -201,12 +214,21 @@ class GuiConfig:
         self.UseRegistry(use_registry)
         self.LoadFromRegistry()
         self.RestorePosition()
-        self.q_catch_close = Manager(self.GetRoot(), self.OnCloseWin)
+        # self.q_catch_close = Manager(self.GetRoot(), self.accept)
         # self.GetRoot().closeEvent = self.OnCloseWin
-        # self.GetRoot().Bind(wx.EVT_CLOSE, self.OnCloseWin)
+        # self.GetRoot().accept = self.accept
 
-    def OnCloseWin(self, event=None):
+    # Called for QDialogs when the X (close) is pressed
+    def closeEvent(self, event=None):
+        # print("gui_config closeEvent")
         self.SaveToRegistry()
+        super().closeEvent(event)
+
+    # Called for QDialogs when OK is pressed
+    def accept(self):
+        # print("gui_config accept")
+        self.SaveToRegistry()
+        super().accept()
 
     def GetRoot(self):
         r = self.__dict__['root']
@@ -315,21 +337,22 @@ class GuiConfig:
         '''
         if bWin32 and self.reg_key:
             name = self.reg_key + "\\MainFrame"
-            wide = RegistryHelpers.GetDWORDFromRegistry(name, "SizeX", 700, bSilent=True)
-            hi = RegistryHelpers.GetDWORDFromRegistry(name, "SizeY", 500, bSilent=True)
-            x = RegistryHelpers.GetDWORDFromRegistry(name, "PosX", 0, bSilent=True)
-            y = RegistryHelpers.GetDWORDFromRegistry(name, "PosY", 0, bSilent=True)
+            wide = RegistryHelpers.GetDWORDFromRegistry(name, "SizeX", None, bSilent=True)
+            hi = RegistryHelpers.GetDWORDFromRegistry(name, "SizeY", None, bSilent=True)
+            x = RegistryHelpers.GetDWORDFromRegistry(name, "PosX", None, bSilent=True)
+            y = RegistryHelpers.GetDWORDFromRegistry(name, "PosY", None, bSilent=True)
             maxsz = RegistryHelpers.GetDWORDFromRegistry(name, "Max", 0, bSilent=True)
-            sz = QtCore.QSize(wide, hi)
-            pt = QtCore.QPoint(x, y)
-            # if wx.NOT_FOUND == wx.Display(0).GetFromPoint((x, y)):  # check that the upper left is on screen, otherwise move the window
-            #     x, y = wx.Display(0).Geometry.GetTopLeft()
-            try:
-                self.adjustPosition(pt)
-                self.resize(sz)
-            except:
-                self.root.move(pt)
-                self.root.resize(sz)
+            if x is not None and wide is not None:
+                sz = QtCore.QSize(wide, hi)
+                pt = QtCore.QPoint(x, y)
+                # if wx.NOT_FOUND == wx.Display(0).GetFromPoint((x, y)):  # check that the upper left is on screen, otherwise move the window
+                #     x, y = wx.Display(0).Geometry.GetTopLeft()
+                try:
+                    self.move(pt)
+                    self.resize(sz)
+                except:
+                    self.root.move(pt)
+                    self.root.resize(sz)
             if maxsz:
                 self.showMaximized()  # calling self.Maximize(max) causes weird screen flicker if max=false
 
@@ -459,7 +482,7 @@ class GuiConfig:
         # Using the __getattr__ method is a little dangerous, if we're setting
         # this up as a derived class.  Be absolutely sure to raise a
         # AttributeError if it doesn't exist, otherwise the search will stop and
-        # our sybling class(es) will not get searched for the attribute
+        # our sibling class(es) will not get searched for the attribute
         if key in self.__dict__ or key == 'windows':  # avoid infinite loop when key==windows which is a special name for recursing the set of child windows
             return self.__dict__[key]
         else:
@@ -568,6 +591,16 @@ class GuiConfig:
         return '{' + ', '.join(L) + '}'
 
 
+# @TODO -- this is a hack to get around the fact that we can't derive from the .ui file
+#    Could make a class file pyside2-uic
+#    Or could make a monkey patch system to add the methods to the qt widget instance
+#    Or could play with the __class__ and __mro__ to make it act like a qwidget
+
+# FIXME It seems that using the .ui files prevents the closedEvent and accept virtual functions from working when trying to overload/redirect them
+#       The object that comes back from QUILoader is not a python object but probably a C++ object that doesn't have the virtual functions
+#       Using the psideX-uic to make a python class and then change it to derive from a qdialog or qwidget seems to work best
+#       The pyside-uic auto generated class actually names the objects based on the window names like what guiconfig aims for,
+#       so guiconfigs benefit is slightly reduced to the natural set/get of window values and the ability to same to registry.
 class guiconfig_mixin:
     def __init__(self, ui_file_path, custom_widgets=[], **kwrds):
         ui_file = QtCore.QFile(ui_file_path)
@@ -578,3 +611,4 @@ class guiconfig_mixin:
             loader.registerCustomWidget(cw)
         self.win = loader.load(ui_file)
         self.gui = GuiConfig(self.win, **kwrds)
+        self.gui.q_catch_close = Manager(self.gui.GetRoot(), self.gui.SaveToRegistry)
