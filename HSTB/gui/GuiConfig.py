@@ -34,7 +34,7 @@ g.windows['text_control'] or g.windows.text_control
 
 import traceback
 import re
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 import wx
 from wx.adv import CalendarCtrl, GenericDatePickerCtrl

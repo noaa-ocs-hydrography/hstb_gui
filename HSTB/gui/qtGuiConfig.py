@@ -36,7 +36,7 @@ import os
 import sys
 import traceback
 import re
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 # check which qt bindings are already loaded and use those since we can't have two different versions loaded
 if "PySide6" in sys.modules.keys():
