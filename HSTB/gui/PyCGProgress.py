@@ -209,9 +209,10 @@ class PyProgress(wx.Dialog):
         sizeDlg.y += 2 * LAYOUT_MARGIN
 
         # try to make the dialog not square but rectangular of reasonable width
-        sizeDlg.x = max(widthText + 100, 4 * sizeDlg.y / 3)
+        # wx requires integers only
+        sizeDlg.x = int(max(widthText + 100, 4 * sizeDlg.y / 3))
         sizeDlg.x *= 3
-        sizeDlg.x /= 2
+        sizeDlg.x = int(sizeDlg.x / 2)
         self.SetClientSize(sizeDlg)
 
         self.Centre(wx.BOTH)
